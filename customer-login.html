@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GreenTrack — Customer Login</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse at 80% 10%, rgba(212,168,67,0.14) 0%, transparent 55%),
+        radial-gradient(ellipse at 20% 90%, rgba(82,183,136,0.11) 0%, transparent 55%),
+        var(--cream);
+      padding: 2rem;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 420px;
+      animation: fadeUp 0.45s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform: translateY(28px); }
+      to   { opacity:1; transform: none; }
+    }
+
+    .brand { text-align: center; margin-bottom: 2.5rem; }
+    .brand-icon {
+      width: 72px; height: 72px; border-radius: 20px; margin: 0 auto 1rem;
+      background: linear-gradient(135deg, #7c5c3e, var(--gold));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; box-shadow: 0 10px 32px rgba(212,168,67,0.32);
+    }
+    .brand-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.2rem; color: var(--green-dark); letter-spacing: -0.4px;
+    }
+    .brand-sub {
+      font-size: 0.78rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 2.5px; color: var(--text-muted); margin-top: 0.25rem;
+    }
+
+    .login-box {
+      background: #fff; border-radius: 22px; padding: 2.25rem;
+      border: 1.5px solid var(--border);
+      box-shadow: 0 8px 40px var(--shadow), 0 1px 0 rgba(255,255,255,0.8) inset;
+    }
+
+    .role-header {
+      display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.75rem;
+      padding-bottom: 1.25rem; border-bottom: 1.5px solid var(--border);
+    }
+    .role-icon-wrap {
+      width: 48px; height: 48px; border-radius: 13px;
+      background: rgba(212,168,67,0.14); display: flex;
+      align-items: center; justify-content: center; font-size: 24px;
+      flex-shrink: 0;
+    }
+    .role-title { font-weight: 900; font-size: 1.1rem; color: var(--green-dark); }
+    .role-desc  { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-top: 0.1rem; }
+
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap .input-icon { position: absolute; left: 0.9rem; top: 50%; transform: translateY(-50%); font-size: 16px; pointer-events: none; }
+    .input-icon-wrap .form-control { padding-left: 2.4rem; }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #7c5c3e, var(--gold));
+      color: #fff; width: 100%; justify-content: center;
+      padding: 0.9rem; font-size: 0.95rem; border-radius: 12px; margin-top: 0.5rem;
+      box-shadow: 0 5px 18px rgba(212,168,67,0.3);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(212,168,67,0.4); }
+
+    .switch-link {
+      text-align: center; margin-top: 1.5rem;
+      font-size: 0.82rem; color: var(--text-muted); font-weight: 600;
+    }
+    .switch-link a { color: var(--green-mid); font-weight: 800; text-decoration: none; }
+    .switch-link a:hover { text-decoration: underline; }
+
+    .demo-hint {
+      text-align: center; margin-top: 1rem; font-size: 0.75rem;
+      color: var(--text-muted); background: var(--surface);
+      border-radius: 8px; padding: 0.5rem 0.75rem;
+      border: 1px dashed var(--border);
+    }
+    .demo-hint strong { color: var(--gold); }
+  </style>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="brand">
+    <div class="brand-icon">🏡</div>
+    <div class="brand-name">GreenTrack</div>
+    <div class="brand-sub">Customer Portal</div>
+  </div>
+
+  <div class="login-box">
+    <div class="role-header">
+      <div class="role-icon-wrap">🏡</div>
+      <div>
+        <div class="role-title">Customer Portal</div>
+        <div class="role-desc">View your service history & account balance</div>
+      </div>
+    </div>
+
+    <div id="login-alert"></div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">👤</span>
+        <input id="username" class="form-control" type="text" placeholder="Enter your username" autocomplete="username" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-icon-wrap">
+        <span class="input-icon">🔒</span>
+        <input id="password" class="form-control" type="password" placeholder="Enter your password" autocomplete="current-password" />
+      </div>
+    </div>
+
+    <button class="btn btn-submit" onclick="doLogin()">Sign In to My Account →</button>
+
+    <div class="demo-hint">
+      Demo: <strong>john_doe / password123</strong> &nbsp;or&nbsp; <strong>mary_j / pass456</strong>
+    </div>
+  </div>
+
+  <div class="switch-link">
+    Are you an employee? <a href="employee-login.html">Sign in here →</a>
+  </div>
+</div>
+
+<script src="db.js"></script>
+<script>
+  // Redirect if already logged in as customer
+  const existing = GT.getSession();
+  if (existing && existing.role === 'customer') {
+    window.location.href = 'app.html';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  function doLogin() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const alertEl  = document.getElementById('login-alert');
+
+    if (!username || !password) {
+      alertEl.innerHTML = '<div class="alert alert-error">⚠ Please enter your username and password.</div>';
+      return;
+    }
+
+    const user = GT.login(username, password, 'customer');
+    if (!user) {
+      alertEl.innerHTML = '<div class="alert alert-error">⚠ Invalid credentials. Please try again.</div>';
+      document.getElementById('password').value = '';
+      return;
+    }
+
+    window.location.href = 'app.html';
+  }
+</script>
+</body>
+</html>
