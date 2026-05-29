@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GreenTrack</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── Top Nav ──────────────────────────────────────────────── -->
+<nav class="topnav">
+  <div class="topnav-brand">
+    <span class="topnav-logo">🌿</span>
+    <span class="topnav-name">GreenTrack</span>
+  </div>
+  <div class="topnav-right">
+    <div class="user-chip">
+      <span id="nav-name"></span>
+      <span id="nav-pill" class="role-pill"></span>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</nav>
+
+<!-- ── Tab Bar ───────────────────────────────────────────────── -->
+<div class="tab-bar" id="tab-bar"></div>
+
+<!-- ── Main ─────────────────────────────────────────────────── -->
+<div class="main" id="main-content">
+
+  <!-- DASHBOARD -->
+  <div id="panel-dashboard" class="panel">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Dashboard</div>
+        <div class="page-head-sub" id="dash-sub"></div>
+      </div>
+    </div>
+    <div id="dash-balance-hero"></div>
+    <div class="stat-grid" id="dash-stats"></div>
+    <div class="table-wrap">
+      <div class="card-header">
+        <span class="card-title">Recent Activity</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Customer</th><th>Task</th><th>Duration</th><th>Type</th><th>Amount</th><th>Notes</th>
+          </tr></thead>
+          <tbody id="dash-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG WORK (employee) -->
+  <div id="panel-log-work" class="panel">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Log Work</div>
+        <div class="page-head-sub">Record a service session for a customer</div>
+      </div>
+    </div>
+    <div class="form-card">
+      <div class="form-group">
+        <label>Customer *</label>
+        <select id="lw-customer" class="form-control"></select>
+      </div>
+      <div class="form-group">
+        <label>Task Type</label>
+        <select id="lw-task" class="form-control"></select>
+      </div>
+      <div class="time-grid">
+        <div class="form-group">
+          <label>Start Time</label>
+          <input id="lw-start" class="form-control" type="time" />
+        </div>
+        <div class="form-group">
+          <label>End Time</label>
+          <input id="lw-end" class="form-control" type="time" />
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Date *</label>
+          <input id="lw-date" class="form-control" type="date" />
+        </div>
+        <div class="form-group">
+          <label>Cost ($) *</label>
+          <input id="lw-cost" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Transaction Type</label>
+        <div class="tx-toggle">
+          <button id="lw-debit-btn"  class="tx-toggle-btn active-debit"  onclick="setLwType('debit')">💸 Charge (Debit)</button>
+          <button id="lw-credit-btn" class="tx-toggle-btn"               onclick="setLwType('credit')">💵 Payment (Credit)</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Comments / Notes</label>
+        <textarea id="lw-notes" class="form-control" rows="3" placeholder="Describe the work done, materials used, any issues…"></textarea>
+      </div>
+      <div id="lw-alert"></div>
+      <button class="btn btn-primary btn-block" style="padding:0.85rem" onclick="saveLogWork()">✅ Save Work Log</button>
+    </div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div id="panel-transactions" class="panel">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Transactions</div>
+        <div class="page-head-sub">Full credit & debit ledger</div>
+      </div>
+      <div id="tx-emp-btns"></div>
+    </div>
+    <div id="tx-filter-bar"></div>
+    <div class="stat-grid" id="tx-stats"></div>
+    <div class="table-wrap">
+      <div class="card-header">
+        <span class="card-title">Transaction History</span>
+        <div style="display:flex;align-items:center;gap:0.5rem">
+          <label style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted)">Filter</label>
+          <select id="tx-type-filter" class="form-control" style="width:auto;padding:0.4rem 2rem 0.4rem 0.75rem;font-size:0.82rem" onchange="renderTransactions()">
+            <option value="all">All</option>
+            <option value="credit">Credits</option>
+            <option value="debit">Debits</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Customer</th><th>Task</th><th>Start</th><th>End</th><th>Duration</th><th>Type</th><th>Amount</th><th>Notes</th><th>Logged By</th><th></th>
+          </tr></thead>
+          <tbody id="tx-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMERS (employee) -->
+  <div id="panel-customers" class="panel">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Customers</div>
+        <div class="page-head-sub">Manage all customer accounts</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-customer')">+ Add Customer</button>
+    </div>
+    <div class="customer-rows" id="customer-rows"></div>
+  </div>
+
+  <!-- TASK TYPES (employee) -->
+  <div id="panel-tasks" class="panel">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">Task Types</div>
+        <div class="page-head-sub">Service categories and default rates</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-task')">+ Add Task</button>
+    </div>
+    <div class="task-grid" id="task-grid"></div>
+  </div>
+
+  <!-- MY ACCOUNT (customer) -->
+  <div id="panel-my-account" class="panel">
+    <div class="page-head">
+      <div>
+        <div class="page-head-title">My Account</div>
+        <div class="page-head-sub" id="my-sub"></div>
+      </div>
+    </div>
+    <div id="my-balance-hero"></div>
+    <div class="stat-grid" id="my-stats"></div>
+    <div class="table-wrap">
+      <div class="card-header">
+        <span class="card-title">My Transactions</span>
+        <select id="my-type-filter" class="form-control" style="width:auto;padding:0.4rem 2rem 0.4rem 0.75rem;font-size:0.82rem" onchange="renderMyAccount()">
+          <option value="all">All</option>
+          <option value="credit">Credits</option>
+          <option value="debit">Debits</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Task</th><th>Start</th><th>End</th><th>Duration</th><th>Type</th><th>Amount</th><th>Notes</th>
+          </tr></thead>
+          <tbody id="my-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+
+<!-- ══════════ MODALS ══════════ -->
+
+<!-- Add Customer -->
+<div id="modal-add-customer" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">Add New Customer</div>
+    <div class="two-col">
+      <div class="form-group"><label>Full Name *</label><input id="mc-name"  class="form-control" type="text" placeholder="Jane Smith" /></div>
+      <div class="form-group"><label>Username *</label><input id="mc-user"  class="form-control" type="text" placeholder="jane_smith" /></div>
+    </div>
+    <div class="form-group"><label>Password *</label><input id="mc-pass"  class="form-control" type="password" placeholder="Set a password" /></div>
+    <div class="two-col">
+      <div class="form-group"><label>Email</label><input id="mc-email" class="form-control" type="email" placeholder="jane@example.com" /></div>
+      <div class="form-group"><label>Phone</label><input id="mc-phone" class="form-control" type="tel"  placeholder="(555) 000-0000" /></div>
+    </div>
+    <div class="form-group"><label>Address</label><input id="mc-addr" class="form-control" type="text" placeholder="123 Elm St, City, State" /></div>
+    <div id="mc-alert"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-add-customer')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCustomer()">Save Customer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Task -->
+<div id="modal-add-task" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">Add Task Type</div>
+    <div class="two-col">
+      <div class="form-group"><label>Task Name *</label><input id="mt-name" class="form-control" type="text" placeholder="e.g. Lawn Mowing" /></div>
+      <div class="form-group"><label>Icon (emoji)</label><input id="mt-icon" class="form-control" type="text" placeholder="🌿" maxlength="4" /></div>
+    </div>
+    <div class="form-group"><label>Default Rate ($/hr)</label><input id="mt-rate" class="form-control" type="number" placeholder="0.00" step="0.01" min="0" /></div>
+    <div class="form-group"><label>Description</label><textarea id="mt-desc" class="form-control" rows="2" placeholder="Brief description…"></textarea></div>
+    <div id="mt-alert"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-add-task')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveTask()">Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manual Transaction -->
+<div id="modal-manual-tx" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">Manual Transaction</div>
+    <div class="form-group"><label>Customer *</label><select id="mm-customer" class="form-control"></select></div>
+    <div class="form-group"><label>Description *</label><input id="mm-desc" class="form-control" type="text" placeholder="e.g. Seasonal discount, cash payment…" /></div>
+    <div class="form-group"><label>Amount ($) *</label><input id="mm-amount" class="form-control" type="number" min="0" step="0.01" placeholder="0.00" /></div>
+    <div class="form-group">
+      <label>Transaction Type</label>
+      <div class="tx-toggle">
+        <button id="mm-debit-btn"  class="tx-toggle-btn active-debit"  onclick="setMmType('debit')">💸 Charge (Debit)</button>
+        <button id="mm-credit-btn" class="tx-toggle-btn"               onclick="setMmType('credit')">💵 Payment (Credit)</button>
+      </div>
+    </div>
+    <div id="mm-alert"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="closeModal('modal-manual-tx')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveManualTx()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Scripts ───────────────────────────────────────────────── -->
+<script src="db.js"></script>
+<script>
+
+// ─────────────────────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────────────────────
+const user = GT.requireAuth(); // redirects if not logged in
+if (!user) throw new Error('Unauthenticated');
+
+const isEmp  = user.role === 'employee';
+let lwType   = 'debit';
+let mmType   = 'debit';
+
+// Nav
+document.getElementById('nav-name').textContent = user.name;
+const pill = document.getElementById('nav-pill');
+pill.textContent = user.role;
+pill.className = 'role-pill ' + user.role;
+document.title  = `GreenTrack — ${isEmp ? 'Employee' : 'Customer'}`;
+
+function doLogout() {
+  GT.logout(isEmp ? 'employee-login.html' : 'customer-login.html');
+}
+
+// Build tabs
+const EMP_TABS  = [
+  { id:'dashboard',    icon:'📊', label:'Dashboard'  },
+  { id:'log-work',     icon:'⏱',  label:'Log Work'   },
+  { id:'transactions', icon:'💳', label:'Transactions'},
+  { id:'customers',    icon:'👥', label:'Customers'  },
+  { id:'tasks',        icon:'🛠',  label:'Task Types' },
+];
+const CUST_TABS = [
+  { id:'my-account',   icon:'🏡', label:'My Account' },
+  { id:'dashboard',    icon:'📊', label:'Overview'   },
+];
+const TABS = isEmp ? EMP_TABS : CUST_TABS;
+
+const tabBar = document.getElementById('tab-bar');
+tabBar.innerHTML = TABS.map(t =>
+  `<button class="tab-btn" id="tabbtn-${t.id}" onclick="activateTab('${t.id}')">${t.icon} ${t.label}</button>`
+).join('');
+
+function activateTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tabbtn-' + id)?.classList.add('active');
+  document.getElementById('panel-' + id)?.classList.add('active');
+  render(id);
+}
+
+activateTab(isEmp ? 'dashboard' : 'my-account');
+
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER ROUTER
+// ─────────────────────────────────────────────────────────────
+function render(tab) {
+  if (tab === 'dashboard')    renderDashboard();
+  if (tab === 'log-work')     renderLogWork();
+  if (tab === 'transactions') renderTransactions();
+  if (tab === 'customers')    renderCustomers();
+  if (tab === 'tasks')        renderTasks();
+  if (tab === 'my-account')   renderMyAccount();
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const db   = GT.db;
+  const txs  = isEmp ? db.transactions : db.transactions.filter(t => t.customerId === user.customerId);
+  document.getElementById('dash-sub').textContent = isEmp
+    ? 'Overview of all customer accounts'
+    : `Welcome back, ${user.name}`;
+
+  if (!isEmp) {
+    const b = GT.getBalance(user.customerId);
+    document.getElementById('dash-balance-hero').innerHTML = balanceHeroHTML(b);
+  } else {
+    document.getElementById('dash-balance-hero').innerHTML = '';
+  }
+
+  const tc = txs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.cost,0);
+  const td = txs.filter(t=>t.type==='debit').reduce((s,t)=>s+t.cost,0);
+  const bal = tc - td;
+
+  let stats = `
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Total Charges</div><div class="stat-value debit">${GT.fmt(td)}</div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-label">Total Payments</div><div class="stat-value credit">${GT.fmt(tc)}</div></div>
+    <div class="stat-card"><div class="stat-icon">⚖️</div><div class="stat-label">Net Balance</div><div class="stat-value ${bal>=0?'pos':'neg'}">${GT.fmt(Math.abs(bal))}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Total Jobs</div><div class="stat-value">${txs.filter(t=>t.taskId).length}</div></div>
+  `;
+  if (isEmp) stats += `<div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">Customers</div><div class="stat-value">${db.customers.length}</div></div>`;
+  document.getElementById('dash-stats').innerHTML = stats;
+
+  const recent = [...txs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  const tbody  = document.getElementById('dash-tbody');
+  if (!recent.length) { tbody.innerHTML = emptyRow(7,'No transactions yet'); return; }
+  tbody.innerHTML = recent.map(t => txRowHTML(t, true, false)).join('');
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  LOG WORK
+// ─────────────────────────────────────────────────────────────
+function renderLogWork() {
+  const db = GT.db;
+  populateSel('lw-customer', db.customers, 'id', c => c.name, '— Select Customer —');
+  populateSel('lw-task', db.taskTypes, 'id', t => `${t.icon} ${t.name}`, '— Select Task Type —');
+  document.getElementById('lw-date').value  = GT.today();
+  document.getElementById('lw-start').value = GT.nowTime();
+  document.getElementById('lw-alert').innerHTML = '';
+  setLwType('debit');
+}
+
+function setLwType(type) {
+  lwType = type;
+  document.getElementById('lw-debit-btn').className  = `tx-toggle-btn${type==='debit'?' active-debit':''}`;
+  document.getElementById('lw-credit-btn').className = `tx-toggle-btn${type==='credit'?' active-credit':''}`;
+}
+
+function saveLogWork() {
+  const custId = document.getElementById('lw-customer').value;
+  const taskId = document.getElementById('lw-task').value;
+  const start  = document.getElementById('lw-start').value;
+  const end    = document.getElementById('lw-end').value;
+  const date   = document.getElementById('lw-date').value;
+  const cost   = parseFloat(document.getElementById('lw-cost').value);
+  const notes  = document.getElementById('lw-notes').value.trim();
+  const alertEl= document.getElementById('lw-alert');
+
+  if (!custId || !date || isNaN(cost) || cost < 0) {
+    alertEl.innerHTML = '<div class="alert alert-error">⚠ Customer, date and cost are required.</div>';
+    return;
+  }
+
+  const task = GT.db.taskTypes.find(t => t.id === taskId);
+  GT.addTransaction({
+    customerId: custId, taskId: taskId || null,
+    date, start, end, cost, type: lwType, notes,
+    loggedBy: user.name,
+    taskName: task ? task.name : (lwType === 'credit' ? 'Payment' : 'Service'),
+  });
+
+  alertEl.innerHTML = `<div class="alert alert-success">✅ Work log saved — ${lwType==='debit'?'Charge':'Payment'} of ${GT.fmt(cost)} recorded.</div>`;
+  document.getElementById('lw-cost').value  = '';
+  document.getElementById('lw-notes').value = '';
+  document.getElementById('lw-end').value   = '';
+  setTimeout(() => { alertEl.innerHTML = ''; }, 4000);
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  TRANSACTIONS
+// ─────────────────────────────────────────────────────────────
+function renderTransactions() {
+  const db = GT.db;
+
+  // Employee extras: customer filter bar + manual tx button
+  if (isEmp) {
+    document.getElementById('tx-emp-btns').innerHTML =
+      `<button class="btn btn-outline btn-sm" onclick="openManualTxModal()">+ Manual Transaction</button>`;
+
+    const custFilterVal = document.getElementById('tx-cust-filter')?.value || 'all';
+    document.getElementById('tx-filter-bar').innerHTML = `
+      <div class="filter-bar">
+        <label>Customer</label>
+        <select id="tx-cust-filter" class="form-control" style="flex:1;max-width:300px" onchange="renderTransactions()">
+          <option value="all">All Customers</option>
+          ${db.customers.map(c=>`<option value="${c.id}" ${c.id===custFilterVal?'selected':''}>${c.name}</option>`).join('')}
+        </select>
+      </div>`;
+  }
+
+  const typeFilter = document.getElementById('tx-type-filter').value;
+  const custFilter = isEmp
+    ? (document.getElementById('tx-cust-filter')?.value || 'all')
+    : user.customerId;
+
+  let txs = db.transactions;
+  if (custFilter !== 'all') txs = txs.filter(t => t.customerId === custFilter);
+  if (typeFilter !== 'all') txs = txs.filter(t => t.type === typeFilter);
+  txs = [...txs].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const base = custFilter === 'all' ? db.transactions : db.transactions.filter(t => t.customerId === custFilter);
+  const tc   = base.filter(t=>t.type==='credit').reduce((s,t)=>s+t.cost,0);
+  const td   = base.filter(t=>t.type==='debit').reduce((s,t)=>s+t.cost,0);
+  const bal  = tc - td;
+  document.getElementById('tx-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Charges</div><div class="stat-value debit">${GT.fmt(td)}</div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-label">Payments</div><div class="stat-value credit">${GT.fmt(tc)}</div></div>
+    <div class="stat-card"><div class="stat-icon">⚖️</div><div class="stat-label">Balance</div><div class="stat-value ${bal>=0?'pos':'neg'}">${GT.fmt(Math.abs(bal))}</div></div>
+  `;
+
+  const tbody = document.getElementById('tx-tbody');
+  if (!txs.length) { tbody.innerHTML = emptyRow(11,'No transactions found'); return; }
+  tbody.innerHTML = txs.map(t => txRowHTML(t, true, isEmp)).join('');
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  CUSTOMERS
+// ─────────────────────────────────────────────────────────────
+function renderCustomers() {
+  const rows = document.getElementById('customer-rows');
+  const db   = GT.db;
+  if (!db.customers.length) {
+    rows.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">No customers yet</div><div class="empty-state-sub">Click "Add Customer" to get started</div></div>`;
+    return;
+  }
+  rows.innerHTML = db.customers.map(c => {
+    const b = GT.getBalance(c.id);
+    const owed = b.balance < 0;
+    return `<div class="customer-row">
+      <div>
+        <div class="cr-name">🏡 ${c.name}</div>
+        <div class="cr-meta">📧 ${c.email || '—'} &nbsp;·&nbsp; 📞 ${c.phone || '—'}</div>
+        <div class="cr-meta">📍 ${c.address || '—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="cr-balance ${owed?'amount-debit':'amount-credit'}">${owed?'Owes':'Paid ahead'} ${GT.fmt(Math.abs(b.balance))}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">Charged: ${GT.fmt(b.totalDebit)} &nbsp;·&nbsp; Paid: ${GT.fmt(b.totalCredit)}</div>
+        <span class="badge ${owed?'badge-red':'badge-green'}" style="margin-top:0.4rem;display:inline-block">${owed?'Balance Due':'Settled'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveCustomer() {
+  const name  = v('mc-name');
+  const uname = v('mc-user');
+  const pass  = v('mc-pass');
+  const email = v('mc-email');
+  const phone = v('mc-phone');
+  const addr  = v('mc-addr');
+  if (!name || !uname || !pass) { setAlert('mc-alert','error','Name, username and password are required.'); return; }
+  if (GT.db.users.find(u => u.username === uname)) { setAlert('mc-alert','error','Username already taken.'); return; }
+  GT.addCustomer({ name, username: uname, password: pass, email, phone, address: addr });
+  closeModal('modal-add-customer');
+  renderCustomers();
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  TASKS
+// ─────────────────────────────────────────────────────────────
+function renderTasks() {
+  const grid = document.getElementById('task-grid');
+  const db   = GT.db;
+  grid.innerHTML = db.taskTypes.map(t => `
+    <div class="task-card">
+      <div class="task-card-icon">${t.icon}</div>
+      <div class="task-card-name">${t.name}</div>
+      <div class="task-card-rate">Default: ${GT.fmt(t.rate)}/hr</div>
+      <div class="task-card-desc">${t.desc}</div>
+    </div>
+  `).join('');
+}
+
+function saveTask() {
+  const name = v('mt-name');
+  const icon = v('mt-icon') || '🔧';
+  const rate = parseFloat(document.getElementById('mt-rate').value) || 0;
+  const desc = v('mt-desc');
+  if (!name) { setAlert('mt-alert','error','Task name is required.'); return; }
+  GT.addTaskType({ name, icon, rate, desc });
+  closeModal('modal-add-task');
+  renderTasks();
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  MY ACCOUNT (customer)
+// ─────────────────────────────────────────────────────────────
+function renderMyAccount() {
+  const cid  = user.customerId;
+  const b    = GT.getBalance(cid);
+  document.getElementById('my-sub').textContent = `Welcome back, ${user.name}`;
+  document.getElementById('my-balance-hero').innerHTML = balanceHeroHTML(b);
+
+  document.getElementById('my-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon">💸</div><div class="stat-label">Total Charged</div><div class="stat-value debit">${GT.fmt(b.totalDebit)}</div></div>
+    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-label">Total Paid</div><div class="stat-value credit">${GT.fmt(b.totalCredit)}</div></div>
+    <div class="stat-card"><div class="stat-icon">🌿</div><div class="stat-label">Jobs Done</div><div class="stat-value">${b.jobCount}</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-label">Transactions</div><div class="stat-value">${b.txCount}</div></div>
+  `;
+
+  const typeFilter = document.getElementById('my-type-filter').value;
+  let txs = GT.db.transactions.filter(t => t.customerId === cid);
+  if (typeFilter !== 'all') txs = txs.filter(t => t.type === typeFilter);
+  txs = [...txs].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const tbody = document.getElementById('my-tbody');
+  if (!txs.length) { tbody.innerHTML = emptyRow(8,'No transactions found'); return; }
+  tbody.innerHTML = txs.map(t => {
+    const dur = GT.calcDuration(t.start, t.end);
+    return `<tr>
+      <td class="mono">${t.date}</td>
+      <td>${t.taskName||'—'}</td>
+      <td class="mono">${t.start||'—'}</td>
+      <td class="mono">${t.end||'—'}</td>
+      <td class="mono">${dur||'—'}</td>
+      <td><span class="badge ${t.type==='credit'?'badge-green':'badge-red'}">${t.type==='credit'?'💵 Credit':'💸 Debit'}</span></td>
+      <td class="${t.type==='credit'?'amount-credit':'amount-debit'}">${t.type==='credit'?'+':'-'}${GT.fmt(t.cost)}</td>
+      <td class="td-muted">${t.notes||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  MANUAL TRANSACTION MODAL
+// ─────────────────────────────────────────────────────────────
+function openManualTxModal() {
+  populateSel('mm-customer', GT.db.customers, 'id', c => c.name);
+  document.getElementById('mm-desc').value   = '';
+  document.getElementById('mm-amount').value = '';
+  document.getElementById('mm-alert').innerHTML = '';
+  setMmType('debit');
+  openModal('modal-manual-tx');
+}
+
+function setMmType(type) {
+  mmType = type;
+  document.getElementById('mm-debit-btn').className  = `tx-toggle-btn${type==='debit'?' active-debit':''}`;
+  document.getElementById('mm-credit-btn').className = `tx-toggle-btn${type==='credit'?' active-credit':''}`;
+}
+
+function saveManualTx() {
+  const custId = document.getElementById('mm-customer').value;
+  const desc   = v('mm-desc');
+  const amount = parseFloat(document.getElementById('mm-amount').value);
+  if (!custId || !desc || isNaN(amount) || amount <= 0) {
+    setAlert('mm-alert','error','All fields are required.');
+    return;
+  }
+  GT.addTransaction({
+    customerId: custId, taskId: null,
+    date: GT.today(), start: '', end: '', cost: amount,
+    type: mmType, notes: desc, loggedBy: user.name,
+    taskName: mmType === 'credit' ? 'Payment' : 'Charge',
+  });
+  closeModal('modal-manual-tx');
+  renderTransactions();
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────
+function txRowHTML(t, showCustomer, showDelete) {
+  const cust = GT.db.customers.find(c => c.id === t.customerId);
+  const dur  = GT.calcDuration(t.start, t.end);
+  return `<tr>
+    <td class="mono">${t.date}</td>
+    <td>${showCustomer ? (cust?.name||'—') : ''}</td>
+    <td>${t.taskName||'—'}</td>
+    <td class="mono">${t.start||'—'}</td>
+    <td class="mono">${t.end||'—'}</td>
+    <td class="mono">${dur||'—'}</td>
+    <td><span class="badge ${t.type==='credit'?'badge-green':'badge-red'}">${t.type==='credit'?'💵 Credit':'💸 Debit'}</span></td>
+    <td class="${t.type==='credit'?'amount-credit':'amount-debit'}">${t.type==='credit'?'+':'-'}${GT.fmt(t.cost)}</td>
+    <td class="td-muted">${t.notes||'—'}</td>
+    <td style="font-size:0.78rem;color:var(--text-muted)">${t.loggedBy||'—'}</td>
+    <td>${showDelete?`<button class="btn btn-danger btn-sm" onclick="deleteTx('${t.id}')">🗑</button>`:''}
+    </td>
+  </tr>`;
+}
+
+function deleteTx(id) {
+  if (!confirm('Delete this transaction?')) return;
+  GT.deleteTransaction(id);
+  renderTransactions();
+}
+
+function balanceHeroHTML(b) {
+  const owed = b.balance < 0;
+  return `<div class="balance-hero">
+    <div class="balance-hero-label">${owed?'Amount Owed':'Account Balance'}</div>
+    <div class="balance-hero-amount">${owed?'-':'+'}${GT.fmt(Math.abs(b.balance))}</div>
+    <div class="balance-hero-sub">${owed?'You have an outstanding balance':'Your account is in good standing'}</div>
+    <div class="balance-hero-row">
+      <div><div class="bh-item-label">Total Charged</div><div class="bh-item-val">${GT.fmt(b.totalDebit)}</div></div>
+      <div><div class="bh-item-label">Total Paid</div><div class="bh-item-val">${GT.fmt(b.totalCredit)}</div></div>
+      <div><div class="bh-item-label">Jobs Completed</div><div class="bh-item-val">${b.jobCount}</div></div>
+    </div>
+  </div>`;
+}
+
+function populateSel(id, items, valKey, labelFn, placeholder) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  sel.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : '') +
+    items.map(i => `<option value="${i[valKey]}">${typeof labelFn==='function'?labelFn(i):i[labelFn]}</option>`).join('');
+}
+
+function emptyRow(cols, msg) {
+  return `<tr><td colspan="${cols}"><div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">${msg}</div></div></td></tr>`;
+}
+
+function v(id) { return document.getElementById(id)?.value.trim() || ''; }
+
+function setAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+  if (type === 'success') setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) backdrop.classList.remove('open');
+  });
+});
+
+// Close modals on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+</script>
+</body>
+</html>
