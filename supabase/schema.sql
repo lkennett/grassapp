@@ -75,11 +75,6 @@ create policy "profiles: user reads own profile"
   on public.profiles for select to authenticated
   using (user_id = (select auth.uid()) or (select public.is_employee()));
 
-create policy "profiles: employees manage profiles"
-  on public.profiles for all to authenticated
-  using ((select public.is_employee()))
-  with check ((select public.is_employee()));
-
 create policy "customers: employees manage customers"
   on public.customers for all to authenticated
   using ((select public.is_employee()))
@@ -114,8 +109,9 @@ create policy "transactions: customers read own transactions"
   );
 
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on public.profiles, public.customers,
-  public.task_types, public.transactions to authenticated;
+grant select on public.profiles to authenticated;
+grant select, insert, update, delete on public.customers, public.task_types,
+  public.transactions to authenticated;
 grant execute on function public.is_employee() to authenticated;
 
 -- Do not expose the service-role key in browser code. Create employee profiles
