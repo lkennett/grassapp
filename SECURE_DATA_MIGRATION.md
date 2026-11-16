@@ -24,13 +24,14 @@ must not be used for real customer data or credentials.
    and linked customer records. Do not create customer passwords in app code.
 5. Use only the project URL and anon/publishable key in the browser. Never put
    the service-role key in client code or commit it to Git.
-6. Set `ALLOWED_ORIGIN` to the exact app origin and configure Auth's invite email
-   and redirect URL.
+6. Deploy the function with the Supabase CLI, set `ALLOWED_ORIGIN` to the exact
+   app origin, and configure Auth's invite email and redirect URL.
 
 ## Remaining migration work
 
 The existing HTML pages still use `db.js` and browser storage. They have not
 been switched to Supabase in this foundation commit. Before pilot use, migrate
 login/session handling and every data read/write to Supabase, remove the demo
-credentials and seeded customer ledger, and add a server-side verify the RLS rules with separate employee and customer accounts. The demo
-credentials and seed data remain for local, disposable previews only.
+credentials and seeded customer ledger, and verify the RLS rules with separate
+employee and customer accounts. The demo credentials and seed data remain for
+local, disposable previews only.
