@@ -109,6 +109,8 @@ create policy "transactions: customers read own transactions"
   );
 
 grant usage on schema public to authenticated;
+revoke all on public.profiles, public.customers, public.task_types, public.transactions from anon, public;
+revoke execute on function public.is_employee() from anon, public;
 grant select on public.profiles to authenticated;
 grant select, insert, update, delete on public.customers, public.task_types,
   public.transactions to authenticated;
