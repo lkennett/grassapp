@@ -626,15 +626,15 @@ function txRowHTML(t, showCustomer, showDelete) {
   const cust = GT.db.customers.find(c => c.id === t.customerId);
   const dur  = GT.calcDuration(t.start, t.end);
   return `<tr>
-    <td class="mono">${t.date}</td>
+    <td class="mono">${escapeHtml(t.date)}</td>
     <td>${showCustomer ? escapeHtml(cust?.name||'—') : ''}</td>
-    <td>${t.taskName||'—'}</td>
-    <td class="mono">${t.start||'—'}</td>
-    <td class="mono">${t.end||'—'}</td>
+    <td>${escapeHtml(t.taskName||'—')}</td>
+    <td class="mono">${escapeHtml(t.start||'—')}</td>
+    <td class="mono">${escapeHtml(t.end||'—')}</td>
     <td class="mono">${dur||'—'}</td>
     <td><span class="badge ${t.type==='credit'?'badge-green':'badge-red'}">${t.type==='credit'?'💵 Credit':'💸 Debit'}</span></td>
     <td class="${t.type==='credit'?'amount-credit':'amount-debit'}">${t.type==='credit'?'+':'-'}${GT.fmt(t.cost)}</td>
-    <td class="td-muted">${t.notes||'—'}</td>
+    <td class="td-muted">${escapeHtml(t.notes||'—')}</td>
     <td style="font-size:0.78rem;color:var(--text-muted)">${escapeHtml(t.loggedBy||'—')}</td>
     <td>${showDelete?`<button class="btn btn-danger btn-sm" onclick="deleteTx('${escapeHtml(t.id)}')">🗑</button>`:''}
     </td>
