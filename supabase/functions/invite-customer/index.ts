@@ -54,7 +54,7 @@ Deno.serve(async (request) => {
   const phone = typeof input.phone === 'string' ? input.phone.trim() : '';
   const serviceAddress = typeof input.service_address === 'string' ? input.service_address.trim() : '';
   if (name.length < 1 || name.length > 160) return json({ error: 'Name must be between 1 and 160 characters' }, 400);
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) || email.length > 254) return json({ error: 'A valid email is required' }, 400);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return json({ error: 'A valid email is required' }, 400);
   if (phone.length > 40 || serviceAddress.length > 300) return json({ error: 'Phone or address is too long' }, 400);
 
   const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
