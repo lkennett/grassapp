@@ -330,6 +330,13 @@ function render(tab) {
 }
 
 
+// Escape values that come from editable browser data before inserting them into HTML.
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
+}
+
 // ─────────────────────────────────────────────────────────────
 //  DASHBOARD
 // ─────────────────────────────────────────────────────────────
@@ -434,7 +441,7 @@ function renderTransactions() {
         <label>Customer</label>
         <select id="tx-cust-filter" class="form-control" style="flex:1;max-width:300px" onchange="renderTransactions()">
           <option value="all">All Customers</option>
-          ${db.customers.map(c=>`<option value="${c.id}" ${c.id===custFilterVal?'selected':''}>${c.name}</option>`).join('')}
+          ${db.customers.map(c=>`<option value="${escapeHtml(c.id)}" ${c.id===custFilterVal?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
         </select>
       </div>`;
   }
@@ -480,9 +487,9 @@ function renderCustomers() {
     const owed = b.balance < 0;
     return `<div class="customer-row">
       <div>
-        <div class="cr-name">🏡 ${c.name}</div>
-        <div class="cr-meta">📧 ${c.email || '—'} &nbsp;·&nbsp; 📞 ${c.phone || '—'}</div>
-        <div class="cr-meta">📍 ${c.address || '—'}</div>
+        <div class="cr-name">🏡 ${escapeHtml(c.name)}</div>
+        <div class="cr-meta">📧 ${escapeHtml(c.email || '—')} &nbsp;·&nbsp; 📞 ${escapeHtml(c.phone || '—')}</div>
+        <div class="cr-meta">📍 ${escapeHtml(c.address || '—')}</div>
       </div>
       <div style="text-align:right">
         <div class="cr-balance ${owed?'amount-debit':'amount-credit'}">${owed?'Owes':'Paid ahead'} ${GT.fmt(Math.abs(b.balance))}</div>
@@ -516,10 +523,10 @@ function renderTasks() {
   const db   = GT.db;
   grid.innerHTML = db.taskTypes.map(t => `
     <div class="task-card">
-      <div class="task-card-icon">${t.icon}</div>
-      <div class="task-card-name">${t.name}</div>
+      <div class="task-card-icon">${escapeHtml(t.icon)}</div>
+      <div class="task-card-name">${escapeHtml(t.name)}</div>
       <div class="task-card-rate">Default: ${GT.fmt(t.rate)}/hr</div>
-      <div class="task-card-desc">${t.desc}</div>
+      <div class="task-card-desc">${escapeHtml(t.desc)}</div>
     </div>
   `).join('');
 }
@@ -562,14 +569,14 @@ function renderMyAccount() {
   tbody.innerHTML = txs.map(t => {
     const dur = GT.calcDuration(t.start, t.end);
     return `<tr>
-      <td class="mono">${t.date}</td>
-      <td>${t.taskName||'—'}</td>
-      <td class="mono">${t.start||'—'}</td>
-      <td class="mono">${t.end||'—'}</td>
+      <td class="mono">${escapeHtml(t.date)}</td>
+      <td>${escapeHtml(t.taskName||'—')}</td>
+      <td class="mono">${escapeHtml(t.start||'—')}</td>
+      <td class="mono">${escapeHtml(t.end||'—')}</td>
       <td class="mono">${dur||'—'}</td>
       <td><span class="badge ${t.type==='credit'?'badge-green':'badge-red'}">${t.type==='credit'?'💵 Credit':'💸 Debit'}</span></td>
       <td class="${t.type==='credit'?'amount-credit':'amount-debit'}">${t.type==='credit'?'+':'-'}${GT.fmt(t.cost)}</td>
-      <td class="td-muted">${t.notes||'—'}</td>
+      <td class="td-muted">${escapeHtml(t.notes||'—')}</td>
     </tr>`;
   }).join('');
 }
@@ -620,7 +627,7 @@ function txRowHTML(t, showCustomer, showDelete) {
   const dur  = GT.calcDuration(t.start, t.end);
   return `<tr>
     <td class="mono">${t.date}</td>
-    <td>${showCustomer ? (cust?.name||'—') : ''}</td>
+    <td>${showCustomer ? escapeHtml(cust?.name||'—') : ''}</td>
     <td>${t.taskName||'—'}</td>
     <td class="mono">${t.start||'—'}</td>
     <td class="mono">${t.end||'—'}</td>
@@ -628,8 +635,8 @@ function txRowHTML(t, showCustomer, showDelete) {
     <td><span class="badge ${t.type==='credit'?'badge-green':'badge-red'}">${t.type==='credit'?'💵 Credit':'💸 Debit'}</span></td>
     <td class="${t.type==='credit'?'amount-credit':'amount-debit'}">${t.type==='credit'?'+':'-'}${GT.fmt(t.cost)}</td>
     <td class="td-muted">${t.notes||'—'}</td>
-    <td style="font-size:0.78rem;color:var(--text-muted)">${t.loggedBy||'—'}</td>
-    <td>${showDelete?`<button class="btn btn-danger btn-sm" onclick="deleteTx('${t.id}')">🗑</button>`:''}
+    <td style="font-size:0.78rem;color:var(--text-muted)">${escapeHtml(t.loggedBy||'—')}</td>
+    <td>${showDelete?`<button class="btn btn-danger btn-sm" onclick="deleteTx('${escapeHtml(t.id)}')">🗑</button>`:''}
     </td>
   </tr>`;
 }
@@ -658,7 +665,7 @@ function populateSel(id, items, valKey, labelFn, placeholder) {
   const sel = document.getElementById(id);
   if (!sel) return;
   sel.innerHTML = (placeholder ? `<option value="">${placeholder}</option>` : '') +
-    items.map(i => `<option value="${i[valKey]}">${typeof labelFn==='function'?labelFn(i):i[labelFn]}</option>`).join('');
+    items.map(i => `<option value="${escapeHtml(i[valKey])}">${escapeHtml(typeof labelFn==='function'?labelFn(i):i[labelFn])}</option>`).join('');
 }
 
 function emptyRow(cols, msg) {
