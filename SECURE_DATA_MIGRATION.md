@@ -1,37 +1,99 @@
-# GreenTrack secure data migration
+Attempting to perform the InitializeDefaultDrives operation on the 'FileSystem' provider failed.
+# GreenTrack: multi-company and secure data foundation
 
-This branch starts the move from browser-only data to Supabase. The current
-prototype stores all accounts and lawn-care records in `localStorage`, so it
-must not be used for real customer data or credentials.
+## How company accounts are separated
 
-## Foundation in this branch
+Each company is an `organizations` row. `organization_members` links employee
+accounts to companies with `owner`, `admin`, or `employee` access. Customers,
+service types, and transactions all carry an `organization_id`; database RLS
+checks that company membership on every request. The same person can be a staff
+member of more than one company, while each company's customer list and ledger
+remain isolated. Customer portal access is linked to the specific customer
+record and that record's organization.
 
-- `supabase/schema.sql` defines server-owned profiles, customers, task types,
-  and ledger transactions.
-- Row Level Security limits customer sessions to their linked customer record
-  and transactions. Employee access is checked against a server-side profile.
-- Passwords belong to Supabase Auth; this schema does not store passwords.
-- `supabase/functions/invite-customer/index.ts` provides an employee-only, server-side customer invitation path. It validates the employee profile before creating the Auth user, profile, and customer record.
-- The prototype now escapes editable values before inserting them into HTML and computes the default date in local time.
+Owners and admins can invite staff with the `manage-employee` Edge Function,
+view their company's roster through its `list` action, and deactivate an
+employee's membership with its `deactivate` action. Deactivation removes that
+employee's access to that company without deleting their account or affecting
+any other company memberships. Employee invitations use Supabase Auth email
+invites; passwords are never managed or stored by GreenTrack code.
 
-## Setup
+## Apply the schema
 
-1. Create a Supabase project for GreenTrack.
-2. Apply `supabase/schema.sql` in the project's SQL editor.
-3. Create the first employee in Supabase Auth, then insert a matching row in
-   `public.profiles` with role `employee` and a display name.
-4. Deploy `invite-customer` and use it to create customer Auth users, profiles,
-   and linked customer records. Do not create customer passwords in app code.
-5. Use only the project URL and anon/publishable key in the browser. Never put
-   the service-role key in client code or commit it to Git.
-6. Deploy the function with the Supabase CLI, set `ALLOWED_ORIGIN` to the exact
-   app origin, and configure Auth's invite email and redirect URL.
+`supabase/schema.sql` describes the multi-tenant schema for a **new/empty**
+Supabase project. Apply it using Supabase's SQL editor or migrations. If you
+already applied the older single-company schema, do not run this file on top of
+it: your existing customer and transaction tables need a backfill to a new
+organization first. The prototype's local seed data does not migrate
+automatically.
 
-## Remaining migration work
+For the first company, create the owner user in Supabase Auth, then insert a
+matching `profiles` row, an `organizations` row, and an `organization_members`
+row with role `owner` using the SQL editor or a trusted administrative script.
+For example, substitute the real Auth user UUID and company name/slug:
 
-The existing HTML pages still use `db.js` and browser storage. They have not
-been switched to Supabase in this foundation commit. Before pilot use, migrate
-login/session handling and every data read/write to Supabase, remove the demo
-credentials and seeded customer ledger, and verify the RLS rules with separate
-employee and customer accounts. The demo credentials and seed data remain for
-local, disposable previews only.
+```sql
+insert into public.profiles (user_id, role, display_name)
+values ('AUTH-USER-UUID', 'employee', 'Company Owner');
+
+with new_org as (
+  insert into public.organizations (name, slug)
+  values ('Example Lawn Co.', 'example-lawn-co')
+  returning id
+)
+insert into public.organization_members (organization_id, user_id, role)
+select id, 'AUTH-USER-UUID', 'owner' from new_org;
+```
+
+Each additional company gets its own organization row and owner membership.
+Never give a company an employee membership in another company's organization
+unless cross-company access is intended.
+
+## Invite and deactivate employees
+
+Deploy both Edge Functions and configure `SUPABASE_URL`,
+`SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `ALLOWED_ORIGIN` in the
+function environment. Keep the service-role key server-side only. Set `ALLOWED_ORIGIN`
+to the exact origin where the app is hosted.
+
+After owner account setup, invite an employee (the invite email is sent by
+Supabase Auth):
+
+```js
+const { data, error } = await supabase.functions.invoke('manage-employee', {
+  body: {
+    action: 'invite',
+    organization_id: activeOrganizationId,
+    name: 'Jordan Smith',
+    email: 'jordan@example.com',
+  },
+});
+```
+
+List the roster with `{ action: 'list', organization_id: activeOrganizationId }`.
+Deactivate a staff member with
+`{ action: 'deactivate', organization_id: activeOrganizationId, user_id: employeeUserId }`.
+Only owners and admins can use these actions. This endpoint only deactivates
+ordinary employee memberships; owner and admin changes remain a trusted
+administrative operation.
+
+Customer invites now require `organization_id` in the request body. The caller
+must have active employee membership in that company, and the new customer and
+ledger are scoped to it.
+
+## Product status and remaining work
+
+This is the multi-tenant **backend foundation**, not a finished SaaS product.
+The HTML prototype still authenticates against hard-coded demo credentials
+and stores all data in browser `localStorage`. It does not call Supabase, has
+no company switcher or employee-management screen, and cannot yet safely host
+real customer data. The Edge Functions and SQL are ready to guide that next
+integration, but must be deployed and wired into the app before any real use.
+
+The next product work is to connect Supabase Auth and data operations, add
+company onboarding and a company switcher, build the owner/admin team screen,
+scope every view to the active company, and migrate or discard demo data. Then
+verify isolation using accounts from two separate companies and customer
+accounts in each one. Existing single-company installations need a reviewed
+backfill migration before applying the tenant schema.
+
